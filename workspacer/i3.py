@@ -46,11 +46,17 @@ class Workspace:
         or (my_digit not in digits)
         or (successor_digit in created_digits)):
       # Cannot create unless self is in digits and next_digit is not created yet.
-      my_index = workspaces.index(self)
-      next_index = (my_index + 1) % len(workspaces)
+      next_index = to_successor_index(self, workspaces)
       return workspaces[next_index]
     # Create a workspace for successor_digit.
     return Workspace(name=str(successor_digit), is_created=False)
+
+  def prev_workspace(self, workspaces, digits=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
+    return self._successor_workspace(
+        workspaces=workspaces,
+        digits=digits,
+        to_successor_index=lambda digit, digits: (digits.index(digit) - 1) % len(digits),
+    )
 
   def next_workspace(self, workspaces, digits=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
     return self._successor_workspace(
@@ -91,6 +97,18 @@ class Dispatcher:
     print(workspace)
 
   @staticmethod
+  def handle_prev(args):
+    digits = range(args.min_digit, args.max_digit+1)
+    workspaces = fetch_workspaces()
+    workspace = current_workspace(workspaces=workspaces)
+    prev_workspace = workspace.prev_workspace(workspaces=workspaces, digits=digits)
+    if args.move_container:
+      prev_workspace.move_container()
+    if args.make_current:
+      prev_workspace.make_current()
+    print(prev_workspace)
+
+  @staticmethod
   def handle_next(args):
     digits = range(args.min_digit, args.max_digit+1)
     workspaces = fetch_workspaces()
@@ -101,7 +119,7 @@ class Dispatcher:
     if args.make_current:
       next_workspace.make_current()
     print(next_workspace)
-
+    
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -113,6 +131,13 @@ if __name__ == '__main__':
   # Args: current
   current_p = subparsers.add_parser('current')
   current_p.set_defaults(fn=Dispatcher.handle_current)
+  # Args: prev
+  prev_p = subparsers.add_parser('prev')
+  prev_p.set_defaults(fn=Dispatcher.handle_prev)
+  prev_p.add_argument('--min-digit', type=int, default=1)
+  prev_p.add_argument('--max-digit', type=int, default=10)
+  prev_p.add_argument('--make-current', default=False, action='store_true')
+  prev_p.add_argument('--move-container', default=False, action='store_true')
   # Args: next
   next_p = subparsers.add_parser('next')
   next_p.set_defaults(fn=Dispatcher.handle_next)
